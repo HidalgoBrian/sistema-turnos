@@ -155,10 +155,7 @@ export default function App() {
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             service={selectedService}
-            onBookingSuccess={() => {
-                // Podés mostrar un mensaje de éxito o simplemente refrescar
-                alert('¡Reserva realizada con éxito!')
-            }}
+            onBookingSuccess={() => {}}
         />
       </div>
   )
