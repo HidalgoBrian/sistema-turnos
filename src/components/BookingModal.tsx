@@ -2,6 +2,7 @@ import { Dialog, DialogPanel, DialogTitle, Transition } from '@headlessui/react'
 import { Fragment, useEffect, useState } from 'react'
 import { CheckCircle, X } from 'lucide-react'
 import { startOfDay, endOfDay, setHours, setMinutes, setSeconds, format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { DayPicker } from 'react-day-picker'
 import 'react-day-picker/dist/style.css'
 import { supabase } from '../lib/supabase'
@@ -25,8 +26,12 @@ interface BookingModalProps {
   onBookingSuccess: () => void
 }
 
+const LAST_SLOT_HOUR = 18
+const isTodayPastCutoff = () => new Date().getHours() >= LAST_SLOT_HOUR
+const getInitialDate = () => isTodayPastCutoff() ? new Date(Date.now() + 86400000) : new Date()
+
 export default function BookingModal({ isOpen, onClose, service, onBookingSuccess }: BookingModalProps) {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(getInitialDate())
   const [selectedTime, setSelectedTime] = useState<string>('09:00')
   const [loading, setLoading] = useState(false)
   const [checkingAvailability, setCheckingAvailability] = useState(false)
@@ -174,6 +179,14 @@ export default function BookingModal({ isOpen, onClose, service, onBookingSucces
                         mode="single"
                         selected={selectedDate}
                         onSelect={(date) => date && setSelectedDate(date)}
+                        locale={es}
+                        disabled={(date) => {
+                          const today = new Date()
+                          const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+                          const isPast = date < startOfToday
+                          const isTodayPastCutoff = date.getTime() === startOfToday.getTime() && today.getHours() >= LAST_SLOT_HOUR
+                          return isPast || isTodayPastCutoff
+                        }}
                         className="m-0"
                       />
                     </div>
