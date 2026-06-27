@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
+import Auth from './components/Auth'
+import type { Session } from '@supabase/supabase-js'
 
-// 1. Definimos el tipado estricto para evitar errores silenciosos
+// 1. Tipado estricto
 interface Service {
   id: string
   name: string
@@ -11,16 +13,38 @@ interface Service {
 }
 
 export default function App() {
-  // 2. Estados para manejar los datos, la carga y los errores
+  // 2. Estados de la aplicación
+  const [session, setSession] = useState<Session | null>(null)
   const [services, setServices] = useState<Service[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false) // Lo pasamos a false por defecto
   const [error, setError] = useState<string | null>(null)
 
-  // 3. Ejecutamos la consulta a Supabase al montar el componente
+  // 3. Efecto para manejar la sesión de Supabase
   useEffect(() => {
+    // Buscar la sesión actual al cargar la página
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+    })
+
+    // Escuchar cambios (cuando el usuario hace login o logout)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    // Limpiar la suscripción al desmontar
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // 4. Efecto para traer los servicios solo si hay sesión
+  useEffect(() => {
+    if (!session) return
+
     const fetchServices = async () => {
+      setLoading(true)
       try {
-        const {data, error} = await supabase
+        const { data, error } = await supabase
             .from('services')
             .select('*')
 
@@ -39,9 +63,14 @@ export default function App() {
     }
 
     fetchServices()
-  }, [])
+  }, [session]) // Este efecto depende de que la sesión cambie
 
-  // 4. Manejo visual de estados de carga y error
+  // si no hay sesión, mostramos el login
+  if (!session) {
+    return <Auth />
+  }
+
+  // manejo visual de estados de carga y error para los servicios
   if (loading) {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -58,17 +87,26 @@ export default function App() {
     )
   }
 
-  // 5. Renderizado final con Tailwind CSS
+  // renderizado del Dashboard (Usuario logueado)
   return (
       <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-extrabold text-gray-900 mb-4">
-              Reserva tu Turno
-            </h1>
-            <p className="text-lg text-gray-600">
-              Seleccioná el servicio que necesitás y agendá en segundos.
-            </p>
+          <div className="flex justify-between items-center mb-12">
+            <div className="text-left">
+              <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
+                Reserva tu Turno
+              </h1>
+              <p className="text-lg text-gray-600">
+                Seleccioná el servicio que necesitás y agendá en segundos.
+              </p>
+            </div>
+
+            <button
+                onClick={() => supabase.auth.signOut()}
+                className="bg-red-50 hover:bg-red-100 text-red-600 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+            >
+              Cerrar Sesión
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
