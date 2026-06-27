@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import Auth from './components/Auth'
+import BookingModal from './components/BookingModal'
 import type { Session } from '@supabase/supabase-js'
 
 // 1. Tipado estricto
@@ -16,8 +17,10 @@ export default function App() {
   // 2. Estados de la aplicación
   const [session, setSession] = useState<Session | null>(null)
   const [services, setServices] = useState<Service[]>([])
-  const [loading, setLoading] = useState(false) // Lo pasamos a false por defecto
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedService, setSelectedService] = useState<Service | null>(null)
 
   // 3. Efecto para manejar la sesión de Supabase
   useEffect(() => {
@@ -134,13 +137,29 @@ export default function App() {
                 </span>
                   </div>
 
-                  <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200">
+                  <button 
+                    onClick={() => {
+                        setSelectedService(service)
+                        setIsModalOpen(true)
+                    }}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200"
+                  >
                     Seleccionar
                   </button>
                 </div>
             ))}
           </div>
         </div>
+
+        <BookingModal 
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            service={selectedService}
+            onBookingSuccess={() => {
+                // Podés mostrar un mensaje de éxito o simplemente refrescar
+                alert('¡Reserva realizada con éxito!')
+            }}
+        />
       </div>
   )
 }

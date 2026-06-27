@@ -11,8 +11,12 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.10",
     "@supabase/supabase-js": "^2.108.2",
+    "date-fns": "^4.4.0",
+    "lucide-react": "^1.21.0",
     "react": "^19.2.7",
+    "react-day-picker": "^10.0.1",
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
