@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
-import Auth from './Auth'
+import Auth from '../../components/Auth'
 
 describe('Componente Auth', () => {
     it('renderiza correctamente el formulario de inicio de sesión por defecto', () => {
