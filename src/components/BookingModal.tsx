@@ -102,7 +102,7 @@ export default function BookingModal({ isOpen, onClose, service, onBookingSucces
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('No session found. Please log in again.')
 
-      const { error: bookingError } = await supabase
+      const { data: newAppointment, error: bookingError } = await supabase
         .from('appointments')
         .insert({
           user_id: session.user.id,
@@ -110,8 +110,14 @@ export default function BookingModal({ isOpen, onClose, service, onBookingSucces
           appointment_date: appointmentDate.toISOString(),
           status: 'pending'
         })
+        .select('id')
+        .single()
 
       if (bookingError) throw bookingError
+
+      supabase.functions.invoke('send-confirmation', {
+        body: { appointmentId: newAppointment.id }
+      }).catch(() => {})
 
       setIsSuccess(true)
       setTimeout(() => {

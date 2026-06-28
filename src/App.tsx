@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './lib/auth-context'
 import LoginPage from './pages/LoginPage'
 import HomePage from './pages/HomePage'
 import MyAppointmentsPage from './pages/MyAppointmentsPage'
+import ConfirmPage from './pages/ConfirmPage'
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth()
@@ -32,6 +33,7 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path="/confirmar" element={<ConfirmPage />} />
         <Route path="/*" element={<AppLayout />} />
       </Routes>
     </AuthProvider>
