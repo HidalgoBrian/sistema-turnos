@@ -173,7 +173,7 @@ export default function BookingModal({ isOpen, onClose, service, onBookingSucces
                     <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
                     <p className="text-xl font-semibold text-gray-900">¡Reserva realizada con éxito!</p>
                     <p className="text-gray-600">
-                      {format(selectedDate!, 'EEEE, d \'de\' MMMM \'de\' yyyy')} a las {selectedTime} hs
+                      {format(selectedDate!, 'EEEE, d \'de\' MMMM \'de\' yyyy', { locale: es })} a las {selectedTime} hs
                     </p>
                     <p className="text-sm text-gray-400">Cerrando automáticamente...</p>
                   </div>

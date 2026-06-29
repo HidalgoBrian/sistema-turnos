@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import MyAppointmentsPage from '../../pages/MyAppointmentsPage'
@@ -58,6 +58,14 @@ describe('MyAppointmentsPage', () => {
     })
   })
 
+  function expectBadge(text: string) {
+    return expect(screen.getByText(text, { selector: 'span' }))
+  }
+
+  function clickFilter(text: string) {
+    fireEvent.click(screen.getByText(text, { selector: 'button' }))
+  }
+
   it('muestra estado Pendiente para turnos futuros', async () => {
     const mockFrom = supabase.from as any
     const app = {
@@ -72,7 +80,7 @@ describe('MyAppointmentsPage', () => {
     renderPage()
 
     await waitFor(() => {
-      expect(screen.getByText('Pendiente')).toBeInTheDocument()
+      expectBadge('Pendiente').toBeInTheDocument()
     })
   })
 
@@ -90,11 +98,11 @@ describe('MyAppointmentsPage', () => {
     renderPage()
 
     await waitFor(() => {
-      expect(screen.getByText('Confirmado')).toBeInTheDocument()
+      expectBadge('Confirmado').toBeInTheDocument()
     })
   })
 
-  it('muestra estado Vencido para turnos pendientes pasados', async () => {
+  it('muestra estado Pendiente para turnos pasados sin confirmar', async () => {
     const mockFrom = supabase.from as any
     const app = {
       id: 'app-1',
@@ -108,7 +116,43 @@ describe('MyAppointmentsPage', () => {
     renderPage()
 
     await waitFor(() => {
-      expect(screen.getByText('Vencido')).toBeInTheDocument()
+      expectBadge('Pendiente').toBeInTheDocument()
+    })
+  })
+
+  it('filtra turnos por estado', async () => {
+    const mockFrom = supabase.from as any
+    const futureDate = new Date(Date.now() + 86400000).toISOString()
+    const apps = [
+      {
+        id: 'app-1',
+        appointment_date: futureDate,
+        created_at: new Date().toISOString(),
+        status: 'pending',
+        services: [{ name: 'Corte' }],
+      },
+      {
+        id: 'app-2',
+        appointment_date: futureDate,
+        created_at: new Date().toISOString(),
+        status: 'confirmed',
+        services: [{ name: 'Coloración' }],
+      },
+    ]
+    mockFrom.mockReturnValue(mockQuery(apps))
+
+    renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('Corte')).toBeInTheDocument()
+      expect(screen.getByText('Coloración')).toBeInTheDocument()
+    })
+
+    clickFilter('Pendiente')
+
+    await waitFor(() => {
+      expect(screen.getByText('Corte')).toBeInTheDocument()
+      expect(screen.queryByText('Coloración')).not.toBeInTheDocument()
     })
   })
 
@@ -126,7 +170,7 @@ describe('MyAppointmentsPage', () => {
     renderPage()
 
     await waitFor(() => {
-      expect(screen.getByText('Cancelado')).toBeInTheDocument()
+      expectBadge('Cancelado').toBeInTheDocument()
     })
   })
 })

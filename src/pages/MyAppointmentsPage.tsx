@@ -22,25 +22,30 @@ function getEffectiveStatus(app: Appointment): { label: string; color: string } 
     case 'confirmed':
       if (alreadyPassed) return { label: 'Completado', color: 'bg-green-100 text-green-800' }
       return { label: 'Confirmado', color: 'bg-green-100 text-green-800' }
-    case 'pending':
-      if (alreadyPassed) return { label: 'Vencido', color: 'bg-gray-200 text-gray-600' }
-      return { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' }
     default:
-      return { label: app.status, color: 'bg-gray-100 text-gray-800' }
+      return { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' }
   }
 }
+
+const FILTERS = ['Todos', 'Pendiente', 'Confirmado', 'Completado', 'Cancelado'] as const
+type Filter = typeof FILTERS[number]
 
 export default function MyAppointmentsPage() {
   const navigate = useNavigate()
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<Filter>('Todos')
 
   useEffect(() => {
     const fetchAndCleanAppointments = async () => {
       try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+
         const { data, error } = await supabase
           .from('appointments')
           .select('id, appointment_date, created_at, status, services(name)')
+          .eq('user_id', session.user.id)
           .order('appointment_date', { ascending: true })
 
         if (error) throw error
@@ -85,6 +90,11 @@ export default function MyAppointmentsPage() {
     )
   }
 
+  const filteredAppointments =
+    filter === 'Todos'
+      ? appointments
+      : appointments.filter((app) => getEffectiveStatus(app).label === filter)
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-8">
@@ -97,19 +107,39 @@ export default function MyAppointmentsPage() {
         </button>
       </div>
 
-      {appointments.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-gray-500 text-lg mb-4">No tenés turnos reservados.</p>
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {FILTERS.map((f) => (
           <button
-            onClick={() => navigate('/')}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
+              filter === f
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
           >
-            Reservar un turno
+            {f}
           </button>
+        ))}
+      </div>
+
+      {filteredAppointments.length === 0 ? (
+        <div className="text-center py-16">
+          <p className="text-gray-500 text-lg mb-4">
+            {appointments.length === 0 ? 'No tenés turnos reservados.' : `No hay turnos con filtro "${filter}".`}
+          </p>
+          {appointments.length === 0 && (
+            <button
+              onClick={() => navigate('/')}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+            >
+              Reservar un turno
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
-          {appointments.map((app) => {
+          {filteredAppointments.map((app) => {
             const { label, color } = getEffectiveStatus(app)
             return (
               <div
