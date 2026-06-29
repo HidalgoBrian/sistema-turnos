@@ -1,75 +1,104 @@
-# React + TypeScript + Vite
+# Sistema de Turnos
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicación web para gestión de turno. Los clientes pueden registrarse, reservar turnos online y confirmarlos por email.
 
-Currently, two official plugins are available:
+## Tecnologías y arquitectura
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| Capa | Tecnología | Motivo |
+|---|---|---|
+| **Frontend** | React 19 + TypeScript | Interfaz reactiva, tipado seguro, ecosistema maduro |
+| **Build** | Vite 8 | Desarrollo rápido con HMR, build optimizado |
+| **Estilos** | Tailwind CSS 4 | Utilidades atómicas, diseño responsive rápido |
+| **UI** | Headless UI + DayPicker | Componentes accesibles sin estilo propio, calendario en español |
+| **Ruteo** | React Router v7 | Navegación SPA con rutas protegidas |
+| **Backend** | Supabase | Base de datos PostgreSQL, autenticación, edge functions |
+| **Auth** | Supabase Auth | Registro/login con email y contraseña, sesiones manejadas |
+| **Email** | Brevo API | Envío de emails transaccionales vía edge functions (300/día gratis) |
+| **Testing** | Vitest + Testing Library | Tests unitarios de componentes y flujos |
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Arquitectura
 
 ```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+src/
+├── components/     # Componentes reutilizables (BookingModal, Auth)
+├── pages/          # Páginas (HomePage, LoginPage, MyAppointmentsPage, ConfirmPage)
+├── lib/            # Clientes (supabase, auth-context)
+└── tests/          # Tests unitarios
+supabase/functions/ # Edge Functions (send-confirmation, confirm-appointment)
 ```
+
+El flujo principal:
+
+1. El usuario se registra/inicia sesión vía Supabase Auth
+2. Selecciona un servicio y reserva un turno (fecha + horario)
+3. El turno se guarda en PostgreSQL con status `pending` y un `confirmation_token`
+4. Una Edge Function envía un email vía Brevo con un link de confirmación
+5. El usuario hace clic en el link → otra Edge Function pública marca el turno como `confirmed`
+6. En "Mis Turnos" se ven los turnos filtrados por el usuario logueado, con estados: Pendiente, Confirmado, Completado, Cancelado
+
+## Herramientas de IA utilizadas
+
+- **Gemini** — Configuración inicial del proyecto Supabase (tablas, columnas, RLS)
+- **OpenCode** — Desarrollo del frontend completo: componentes, páginas, ruteo, lógica de negocio, integración con Supabase y Brevo, tests unitarios
+
+Ambas herramientas aceleraron significativamente el desarrollo, permitiendo iterar rápido sobre la UI y resolver problemas de integración en minutos.
+
+## Requisitos
+
+- Node.js 18+
+- Una cuenta en [Supabase](https://supabase.com) (gratuita)
+- Una cuenta en [Brevo](https://www.brevo.com) (gratuita, 300 emails/día)
+
+## Instalación y ejecución local
+
+```bash
+# 1. Clonar el repositorio
+git clone https://github.com/tuusuario/sistema-turnos.git
+cd sistema-turnos
+
+# 2. Instalar dependencias
+npm install
+
+# 3. Configurar variables de entorno
+# Crear archivo .env.local con:
+VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
+VITE_SUPABASE_ANON_KEY=tu-anon-key
+
+# 4. Iniciar en desarrollo
+npm run dev
+```
+
+### Configurar Supabase
+
+1. Crear un proyecto en [Supabase](https://supabase.com)
+2. Ejecutar en SQL Editor las migraciones necesarias (tabla `appointments` con columnas `confirmation_token` y `confirmed_at`)
+3. Desactivar "Confirm email" en Authentication → Providers → Email (para desarrollo)
+4. Crear dos Edge Functions:
+   - `send-confirmation` — envía email al reservar
+   - `confirm-appointment` — pública, confirma el turno
+5. Configurar los secrets en las Edge Functions:
+   - `BREVO_API_KEY` — API key de Brevo
+   - `FROM_EMAIL` — dirección de envío (verificar remitente en Brevo)
+   - `APP_URL` — URL de la app (`http://localhost:5173` en desarrollo)
+
+### Configurar Brevo
+
+1. Crear cuenta en [Brevo](https://www.brevo.com) (300 emails/día gratis, sin límite de destinatarios)
+2. Ir a SMTP & API → API Keys y crear una clave
+3. Verificar un remitente (Sender) en Brevo con un email tuyo
+4. Agregar `BREVO_API_KEY` como secret en la Edge Function `send-confirmation`
+
+## Scripts disponibles
+
+```bash
+npm run dev       # Desarrollo con HMR
+npm run build     # Build de producción
+npm run lint      # ESLint
+npm test          # Tests unitarios
+```
+
+## Próximos pasos
+
+- Panel admin para gestionar turnos (Completado / vencido)
+- Verificar dominios para enviar emails a cualquier destinatario
+- Deploy a producción (Vercel, Netlify, etc.)
