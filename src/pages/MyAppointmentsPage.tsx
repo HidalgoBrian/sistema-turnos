@@ -35,6 +35,22 @@ export default function MyAppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<Filter>('Todos')
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
+
+  const handleCancel = async (id: string) => {
+    if (!confirm('¿Cancelar este turno?')) return
+    setCancellingId(id)
+    const { error } = await supabase
+      .from('appointments')
+      .update({ status: 'cancelled' })
+      .eq('id', id)
+    if (!error) {
+      setAppointments((prev) =>
+        prev.map((app) => (app.id === id ? { ...app, status: 'cancelled' } : app))
+      )
+    }
+    setCancellingId(null)
+  }
 
   useEffect(() => {
     const fetchAndCleanAppointments = async () => {
@@ -144,17 +160,28 @@ export default function MyAppointmentsPage() {
             return (
               <div
                 key={app.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center justify-between"
+                className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center justify-between gap-4"
               >
-                <div>
+                <div className="flex-1">
                   <p className="font-semibold text-gray-900">{app.services[0]?.name}</p>
                   <p className="text-sm text-gray-500 mt-1">
                     {format(new Date(app.appointment_date), "EEEE, d 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es })} hs
                   </p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${color}`}>
-                  {label}
-                </span>
+                <div className="flex items-center gap-3">
+                  {(app.status === 'pending' || app.status === 'confirmed') && !isPast(new Date(app.appointment_date)) && (
+                    <button
+                      onClick={() => handleCancel(app.id)}
+                      disabled={cancellingId === app.id}
+                      className="text-sm text-red-600 hover:text-red-700 font-medium disabled:opacity-50"
+                    >
+                      {cancellingId === app.id ? 'Cancelando...' : 'Cancelar'}
+                    </button>
+                  )}
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${color}`}>
+                    {label}
+                  </span>
+                </div>
               </div>
             )
           })}
