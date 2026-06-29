@@ -6,6 +6,7 @@ const APP_URL = Deno.env.get("APP_URL") || "https://sistema-turnos-swart.vercel.
 const FROM_EMAIL = Deno.env.get("FROM_EMAIL") || "onboarding@sendpigeon-sandbox.dev"
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+const TIME_ZONE = "America/Argentina/Buenos_Aires"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,15 +52,18 @@ export default {
 
     const confirmUrl = `${APP_URL}/confirmar?token=${appointment.confirmation_token}`
     const date = new Date(appointment.appointment_date)
-    const formattedDate = date.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-    const formattedTime = date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
-
+    const formattedDate = date.toLocaleDateString('es-AR', {
+      timeZone: TIME_ZONE,
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
     const html = `
       <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
         <h2 style="color: #4f46e5;">¡Turno reservado!</h2>
         <p>Reservaste un turno de <strong>${appointment.service?.name || 'peluquería'}</strong>
         para el <strong>${formattedDate}</strong></p>
-        <p><strong>Horario:</strong> ${formattedTime}</p>
         <p>Hacé clic en el siguiente botón para confirmarlo:</p>
         <a href="${confirmUrl}"
            style="display: inline-block; background: #4f46e5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 16px 0;">

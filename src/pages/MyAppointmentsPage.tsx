@@ -10,7 +10,12 @@ interface Appointment {
   appointment_date: string
   created_at: string
   status: string
-  services: { name: string }[]
+  services: { name: string } | { name: string }[] | null
+}
+
+const getServiceName = (app: Appointment) => {
+  if (Array.isArray(app.services)) return app.services[0]?.name || 'Servicio reservado'
+  return app.services?.name || 'Servicio reservado'
 }
 
 function getEffectiveStatus(app: Appointment): { label: string; color: string } {
@@ -170,7 +175,7 @@ export default function MyAppointmentsPage() {
                 className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center justify-between gap-4"
               >
                 <div className="flex-1">
-                  <p className="font-semibold text-gray-900">{app.services[0]?.name}</p>
+                  <p className="font-semibold text-gray-900">{getServiceName(app)}</p>
                   <p className="text-sm text-gray-500 mt-1">
                     {format(new Date(app.appointment_date), "EEEE, d 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es })} hs
                   </p>
@@ -204,7 +209,7 @@ export default function MyAppointmentsPage() {
             </DialogTitle>
             <p className="text-gray-600 text-sm">
               {cancelTarget ? (
-                <>¿Cancelar el turno de <strong>{cancelTarget.services[0]?.name}</strong> del {format(new Date(cancelTarget.appointment_date), "d 'de' MMMM", { locale: es })}?</>
+                <>¿Cancelar el turno de <strong>{getServiceName(cancelTarget)}</strong> del {format(new Date(cancelTarget.appointment_date), "d 'de' MMMM", { locale: es })}?</>
               ) : '¿Cancelar este turno?'}
             </p>
             <div className="flex justify-end gap-3 pt-2">
