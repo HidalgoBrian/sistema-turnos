@@ -1,100 +1,95 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { createClient } from "jsr:@supabase/supabase-js@^2"
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
-    })
-  }
+const SENDPIGEON_API_KEY = Deno.env.get("SENDPIGEON_API_KEY")!
+const APP_URL = Deno.env.get("APP_URL") || "https://sistema-turnos-swart.vercel.app"
+const FROM_EMAIL = Deno.env.get("FROM_EMAIL") || "onboarding@sendpigeon-sandbox.dev"
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 
-  try {
-    const { appointmentId } = await req.json()
-    if (!appointmentId) {
-      return new Response(JSON.stringify({ error: 'appointmentId is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, content-type, x-client-info, apikey",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+}
+
+export default {
+  fetch: async (req: Request) => {
+    if (req.method === "OPTIONS") {
+      return new Response('ok', {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
       })
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
+    const authHeader = req.headers.get("Authorization")
+    if (!authHeader) {
+      return Response.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders })
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    const { appointmentId } = await req.json()
 
     const { data: appointment, error } = await supabase
       .from('appointments')
-      .select('id, confirmation_token, user_id, appointment_date, service:service_id(name)')
+      .select('id, confirmation_token, user_id, appointment_date, service:services(name)')
       .eq('id', appointmentId)
       .single()
 
     if (error || !appointment) {
-      return new Response(JSON.stringify({ error: 'Appointment not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      })
+      return Response.json({ error: 'Appointment not found' }, { status: 404, headers: corsHeaders })
     }
 
-    const { data: { user } } = await supabase.auth.admin.getUserById(appointment.user_id)
+    const { data: { user } } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""))
     const email = user?.email
     if (!email) {
-      return new Response(JSON.stringify({ error: 'User email not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      })
+      return Response.json({ error: 'User email not found' }, { status: 400, headers: corsHeaders })
     }
 
-    const appUrl = Deno.env.get('APP_URL') || 'http://localhost:5173'
-    const confirmUrl = `${appUrl}/confirmar?token=${appointment.confirmation_token}`
+    const confirmUrl = `${APP_URL}/confirmar?token=${appointment.confirmation_token}`
+    const date = new Date(appointment.appointment_date)
+    const formattedDate = date.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    const formattedTime = date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
 
-    const brevoApiKey = Deno.env.get('BREVO_API_KEY')
-    const fromEmail = Deno.env.get('FROM_EMAIL') || 'noreply@tudominio.com'
+    const html = `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+        <h2 style="color: #4f46e5;">¡Turno reservado!</h2>
+        <p>Reservaste un turno de <strong>${appointment.service?.name || 'peluquería'}</strong>
+        para el <strong>${formattedDate}</strong></p>
+        <p><strong>Horario:</strong> ${formattedTime}</p>
+        <p>Hacé clic en el siguiente botón para confirmarlo:</p>
+        <a href="${confirmUrl}"
+           style="display: inline-block; background: #4f46e5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 16px 0;">
+          Confirmar turno
+        </a>
+        <p style="color: #6b7280; font-size: 14px;">Si no solicitaste este turno, ignorá este correo.</p>
+      </div>
+    `
 
-    const { error: brevoError } = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
+    const res = await fetch("https://api.sendpigeon.dev/v1/emails", {
+      method: "POST",
       headers: {
-        'api-key': brevoApiKey,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SENDPIGEON_API_KEY}`,
       },
       body: JSON.stringify({
-        sender: { name: 'Sistema de Turnos', email: fromEmail },
-        to: [{ email }],
-        subject: 'Confirmá tu turno',
-        htmlContent: `
-          <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-            <h2 style="color: #4f46e5;">¡Turno reservado!</h2>
-            <p>Reservaste un turno de <strong>${appointment.service?.name || 'peluquería'}</strong>
-            para el <strong>${new Date(appointment.appointment_date).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong></p>
-            <p>Hacé clic en el siguiente botón para confirmarlo:</p>
-            <a href="${confirmUrl}"
-               style="display: inline-block; background: #4f46e5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 16px 0;">
-              Confirmar turno
-            </a>
-            <p style="color: #6b7280; font-size: 14px;">Si no solicitaste este turno, ignorá este correo.</p>
-          </div>
-        `,
+        from: FROM_EMAIL,
+        to: email,
+        subject: "Confirmá tu turno",
+        html,
       }),
-    }).then((r) => r.json())
+    })
 
-    if (brevoError) {
-      return new Response(JSON.stringify({ error: 'Failed to send email', details: brevoError }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      })
+    const sendResult = await res.json()
+
+    if (!res.ok) {
+      console.error("SendPigeon error:", sendResult)
+      return Response.json({ error: 'Failed to send email', details: sendResult }, { status: 500, headers: corsHeaders })
     }
 
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    })
-  } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    })
-  }
-})
+    return Response.json({ success: true, id: sendResult.id }, { status: 200, headers: corsHeaders })
+  },
+}

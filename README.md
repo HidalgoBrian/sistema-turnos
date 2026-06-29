@@ -13,7 +13,7 @@ Aplicación web para gestión de turno. Los clientes pueden registrarse, reserva
 | **Ruteo** | React Router v7 | Navegación SPA con rutas protegidas |
 | **Backend** | Supabase | Base de datos PostgreSQL, autenticación, edge functions |
 | **Auth** | Supabase Auth | Registro/login con email y contraseña, sesiones manejadas |
-| **Email** | Brevo API | Envío de emails transaccionales vía edge functions (300/día gratis) |
+| **Email** | SendPigeon API | Envío de emails transaccionales vía edge functions |
 | **Testing** | Vitest + Testing Library | Tests unitarios de componentes y flujos |
 
 ### Arquitectura
@@ -32,14 +32,14 @@ El flujo principal:
 1. El usuario se registra/inicia sesión vía Supabase Auth
 2. Selecciona un servicio y reserva un turno (fecha + horario)
 3. El turno se guarda en PostgreSQL con status `pending` y un `confirmation_token`
-4. Una Edge Function envía un email vía Brevo con un link de confirmación
+4. Una Edge Function envía un email vía SendPigeon con un link de confirmación
 5. El usuario hace clic en el link → otra Edge Function pública marca el turno como `confirmed`
 6. En "Mis Turnos" se ven los turnos filtrados por el usuario logueado, con estados: Pendiente, Confirmado, Completado, Cancelado
 
 ## Herramientas de IA utilizadas
 
 - **Gemini** — Configuración inicial del proyecto Supabase (tablas, columnas, RLS)
-- **OpenCode** — Desarrollo del frontend completo: componentes, páginas, ruteo, lógica de negocio, integración con Supabase y Brevo, tests unitarios
+- **OpenCode** — Desarrollo del frontend completo: componentes, páginas, ruteo, lógica de negocio, integración con Supabase y SendPigeon, tests unitarios
 
 Ambas herramientas aceleraron significativamente el desarrollo, permitiendo iterar rápido sobre la UI y resolver problemas de integración en minutos.
 
@@ -47,7 +47,7 @@ Ambas herramientas aceleraron significativamente el desarrollo, permitiendo iter
 
 - Node.js 18+
 - Una cuenta en [Supabase](https://supabase.com) (gratuita)
-- Una cuenta en [Brevo](https://www.brevo.com) (gratuita, 300 emails/día)
+- Una cuenta en [SendPigeon](https://sendpigeon.dev) (gratuita, 3.000 emails/mes)
 
 ## Instalación y ejecución local
 
@@ -77,16 +77,17 @@ npm run dev
    - `send-confirmation` — envía email al reservar
    - `confirm-appointment` — pública, confirma el turno
 5. Configurar los secrets en las Edge Functions:
-   - `BREVO_API_KEY` — API key de Brevo
-   - `FROM_EMAIL` — dirección de envío (verificar remitente en Brevo)
-   - `APP_URL` — URL de la app (`http://localhost:5173` en desarrollo)
+   - `SENDPIGEON_API_KEY` — API key de SendPigeon
+   - `FROM_EMAIL` — dirección verificada en SendPigeon (o `onboarding@sendpigeon-sandbox.dev` para pruebas)
+   - `APP_URL` — URL de la app (`https://sistema-turnos-swart.vercel.app`)
 
-### Configurar Brevo
+### Configurar SendPigeon
 
-1. Crear cuenta en [Brevo](https://www.brevo.com) (300 emails/día gratis, sin límite de destinatarios)
-2. Ir a SMTP & API → API Keys y crear una clave
-3. Verificar un remitente (Sender) en Brevo con un email tuyo
-4. Agregar `BREVO_API_KEY` como secret en la Edge Function `send-confirmation`
+1. Crear cuenta en [SendPigeon](https://sendpigeon.dev) (3.000 emails/mes gratis, solo email + contraseña)
+2. Ir a API Keys y crear una clave (`sk_live_...`)
+3. Para pruebas: usar el sandbox `sendpigeon-sandbox.dev` como remitente (solo llega a tu email)
+4. Para producción: verificar un dominio propio en SendPigeon
+5. Agregar `SENDPIGEON_API_KEY` como secret en la Edge Function `send-confirmation`
 
 ## Scripts disponibles
 

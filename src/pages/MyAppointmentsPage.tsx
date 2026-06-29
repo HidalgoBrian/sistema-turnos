@@ -1,3 +1,4 @@
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -36,9 +37,9 @@ export default function MyAppointmentsPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<Filter>('Todos')
   const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null)
 
   const handleCancel = async (id: string) => {
-    if (!confirm('¿Cancelar este turno?')) return
     setCancellingId(id)
     const { error } = await supabase
       .from('appointments')
@@ -112,7 +113,7 @@ export default function MyAppointmentsPage() {
       : appointments.filter((app) => getEffectiveStatus(app).label === filter)
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <><div className="max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-extrabold text-gray-900">Mis Turnos</h1>
         <button
@@ -171,11 +172,10 @@ export default function MyAppointmentsPage() {
                 <div className="flex items-center gap-3">
                   {(app.status === 'pending' || app.status === 'confirmed') && !isPast(new Date(app.appointment_date)) && (
                     <button
-                      onClick={() => handleCancel(app.id)}
-                      disabled={cancellingId === app.id}
-                      className="text-sm text-red-600 hover:text-red-700 font-medium disabled:opacity-50"
+                      onClick={() => setCancelTarget(app)}
+                      className="text-sm text-red-600 hover:text-red-700 font-medium"
                     >
-                      {cancellingId === app.id ? 'Cancelando...' : 'Cancelar'}
+                      Cancelar
                     </button>
                   )}
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${color}`}>
@@ -188,5 +188,40 @@ export default function MyAppointmentsPage() {
         </div>
       )}
     </div>
-  )
+
+      <Dialog open={cancelTarget !== null} onClose={() => setCancelTarget(null)} className="relative z-50">
+        <div className="fixed inset-0 bg-black/30" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <DialogPanel className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4">
+            <DialogTitle className="text-lg font-semibold text-gray-900">
+              Cancelar turno
+            </DialogTitle>
+            <p className="text-gray-600 text-sm">
+              {cancelTarget ? (
+                <>¿Cancelar el turno de <strong>{cancelTarget.services[0]?.name}</strong> del {format(new Date(cancelTarget.appointment_date), "d 'de' MMMM", { locale: es })}?</>
+              ) : '¿Cancelar este turno?'}
+            </p>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setCancelTarget(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Volver
+              </button>
+              <button
+                onClick={() => {
+                  const id = cancelTarget!.id
+                  setCancelTarget(null)
+                  handleCancel(id)
+                }}
+                disabled={cancellingId === cancelTarget?.id}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {cancellingId === cancelTarget?.id ? 'Cancelando...' : 'Sí, cancelar turno'}
+              </button>
+            </div>
+          </DialogPanel>
+        </div>
+      </Dialog>
+    </>)
 }

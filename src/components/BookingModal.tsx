@@ -67,6 +67,7 @@ export default function BookingModal({ isOpen, onClose, service, onBookingSucces
           .eq('service_id', service.id)
           .gte('appointment_date', start)
           .lte('appointment_date', end)
+          .neq('status', 'cancelled')
 
         if (fetchError) throw fetchError
 
