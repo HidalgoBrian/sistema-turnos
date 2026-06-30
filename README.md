@@ -1,105 +1,235 @@
 # Sistema de Turnos
 
-Aplicación web para gestión de turno. Los clientes pueden registrarse, reservar turnos online y confirmarlos por email.
+Aplicación web para reservar turnos de barbería. Los usuarios pueden registrarse, elegir un servicio, seleccionar día y horario, recibir un email de confirmación y consultar sus reservas desde la sección "Mis Turnos".
 
-## Tecnologías y arquitectura
+## Tecnologías
 
-| Capa | Tecnología | Motivo |
-|---|---|---|
-| **Frontend** | React 19 + TypeScript | Interfaz reactiva, tipado seguro, ecosistema maduro |
-| **Build** | Vite 8 | Desarrollo rápido con HMR, build optimizado |
-| **Estilos** | Tailwind CSS 4 | Utilidades atómicas, diseño responsive rápido |
-| **UI** | Headless UI + DayPicker | Componentes accesibles sin estilo propio, calendario en español |
-| **Ruteo** | React Router v7 | Navegación SPA con rutas protegidas |
-| **Backend** | Supabase | Base de datos PostgreSQL, autenticación, edge functions |
-| **Auth** | Supabase Auth | Registro/login con email y contraseña, sesiones manejadas |
-| **Email** | SendPigeon API | Envío de emails transaccionales vía edge functions |
-| **Testing** | Vitest + Testing Library | Tests unitarios de componentes y flujos |
+| Capa | Tecnología |
+|---|---|
+| Frontend | React 19 + TypeScript |
+| Build | Vite 8 |
+| Estilos | Tailwind CSS 4 |
+| UI | Headless UI + React DayPicker |
+| Ruteo | React Router v7 |
+| Backend | Supabase |
+| Auth | Supabase Auth |
+| Email | Supabase Edge Functions + SendPigeon |
+| Testing | Vitest + Testing Library |
 
-### Arquitectura
+## Funcionalidades
 
-```
+- Registro e inicio de sesión con email y contraseña.
+- Navbar y footer globales.
+- Vista de servicios disponibles.
+- Modal de reserva con calendario y horarios.
+- Validación de horarios ya ocupados.
+- Email de confirmación al reservar.
+- Página para confirmar el turno desde el link del email.
+- Vista "Mis Turnos" con filtros por estado.
+- Cancelación de turnos pendientes o confirmados.
+- Limpieza automática visual de turnos pendientes vencidos.
+
+## Servicios actuales
+
+La tabla `services` contiene estos servicios de barbería:
+
+| Servicio | Duración | Precio |
+|---|---:|---:|
+| Perfilado de barba | 20 min | $7000 |
+| Corte de pelo | 30 min | $10000 |
+| Corte + barba | 45 min | $13000 |
+| Corte premium | 60 min | $16000 |
+
+## Estructura
+
+```txt
 src/
-├── components/     # Componentes reutilizables (BookingModal, Auth)
-├── pages/          # Páginas (HomePage, LoginPage, MyAppointmentsPage, ConfirmPage)
-├── lib/            # Clientes (supabase, auth-context)
-└── tests/          # Tests unitarios
-supabase/functions/ # Edge Functions (send-confirmation, confirm-appointment)
+├── components/
+│   ├── Auth.tsx
+│   ├── BookingModal.tsx
+│   ├── Footer.tsx
+│   └── Navbar.tsx
+├── lib/
+│   ├── auth-context.tsx
+│   └── supabase.ts
+├── pages/
+│   ├── ConfirmPage.tsx
+│   ├── HomePage.tsx
+│   ├── LoginPage.tsx
+│   └── MyAppointmentsPage.tsx
+└── tests/
+
+supabase/
+├── deno.json
+├── tsconfig.json
+└── functions/
+    ├── confirm-appointment/
+    └── send-confirmation/
+
+database/
+└── schema.sql
 ```
 
-El flujo principal:
+## Flujo principal
 
-1. El usuario se registra/inicia sesión vía Supabase Auth
-2. Selecciona un servicio y reserva un turno (fecha + horario)
-3. El turno se guarda en PostgreSQL con status `pending` y un `confirmation_token`
-4. Una Edge Function envía un email vía SendPigeon con un link de confirmación
-5. El usuario hace clic en el link → otra Edge Function pública marca el turno como `confirmed`
-6. En "Mis Turnos" se ven los turnos filtrados por el usuario logueado, con estados: Pendiente, Confirmado, Completado, Cancelado
+1. El usuario inicia sesión con Supabase Auth.
+2. Selecciona un servicio desde la home.
+3. Elige día y horario en el modal de reserva.
+4. Se crea un registro en `appointments` con estado `pending`.
+5. La función `send-confirmation` envía un email con el link de confirmación.
+6. El email muestra el servicio y la fecha de reserva. No muestra la hora para evitar diferencias de zona horaria.
+7. El usuario confirma desde `/confirmar?token=...`.
+8. La función `confirm-appointment` marca el turno como `confirmed`.
+9. En "Mis Turnos" el usuario ve el servicio reservado, la fecha, el horario y el estado.
 
-## Herramientas de IA utilizadas
+## Variables de entorno
 
-- **Gemini** — Configuración inicial del proyecto Supabase (tablas, columnas, RLS)
-- **OpenCode** — Desarrollo del frontend completo: componentes, páginas, ruteo, lógica de negocio, integración con Supabase y SendPigeon, tests unitarios
+Copiar el archivo `.env.example`, renombrarlo a `.env.local` y completar las variables con las claves propias de Supabase.
 
-Ambas herramientas aceleraron significativamente el desarrollo, permitiendo iterar rápido sobre la UI y resolver problemas de integración en minutos.
+```bash
+cp .env.example .env.local
+```
 
-## Requisitos
+Variables necesarias para correr el frontend:
 
-- Node.js 18+
-- Una cuenta en [Supabase](https://supabase.com) (gratuita)
-- Una cuenta en [SendPigeon](https://sendpigeon.dev) (gratuita, 3.000 emails/mes)
+```env
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+```
+
+Secrets necesarios para Supabase Edge Functions:
+
+```env
+SENDPIGEON_API_KEY=
+FROM_EMAIL=
+APP_URL=
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+```
 
 ## Instalación y ejecución local
 
+Para correr el proyecto localmente alcanza con instalar dependencias, configurar `.env.local` y levantar Vite. Si se quiere usar un proyecto propio de Supabase, primero hay que ejecutar el script SQL incluido en el repositorio.
+
+### Opción 1: usar el Supabase existente
+
+1. Clonar el repositorio.
+
 ```bash
-# 1. Clonar el repositorio
 git clone https://github.com/tuusuario/sistema-turnos.git
 cd sistema-turnos
+```
 
-# 2. Instalar dependencias
+2. Instalar dependencias.
+
+```bash
 npm install
+```
 
-# 3. Configurar variables de entorno
-# Crear archivo .env.local con:
-VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
-VITE_SUPABASE_ANON_KEY=tu-anon-key
+3. Crear `.env.local` desde el ejemplo.
 
-# 4. Iniciar en desarrollo
+```bash
+cp .env.example .env.local
+```
+
+4. Completar `.env.local` con las claves públicas de Supabase.
+
+```env
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+```
+
+5. Levantar el frontend.
+
+```bash
 npm run dev
 ```
 
-### Configurar Supabase
+Con eso alcanza para usar la app localmente conectada al backend de Supabase configurado.
 
-1. Crear un proyecto en [Supabase](https://supabase.com)
-2. Ejecutar en SQL Editor las migraciones necesarias (tabla `appointments` con columnas `confirmation_token` y `confirmed_at`)
-3. Desactivar "Confirm email" en Authentication → Providers → Email (para desarrollo)
-4. Crear dos Edge Functions:
-   - `send-confirmation` — envía email al reservar
-   - `confirm-appointment` — pública, confirma el turno
-5. Configurar los secrets en las Edge Functions:
-   - `SENDPIGEON_API_KEY` — API key de SendPigeon
-   - `FROM_EMAIL` — dirección verificada en SendPigeon (o `onboarding@sendpigeon-sandbox.dev` para pruebas)
-   - `APP_URL` — URL de la app (`https://sistema-turnos-swart.vercel.app`)
+### Opción 2: crear un Supabase propio
 
-### Configurar SendPigeon
+Esta opción solo es necesaria si se quiere levantar una copia completa del backend, con base de datos, autenticación y funciones propias.
 
-1. Crear cuenta en [SendPigeon](https://sendpigeon.dev) (3.000 emails/mes gratis, solo email + contraseña)
-2. Ir a API Keys y crear una clave (`sk_live_...`)
-3. Para pruebas: usar el sandbox `sendpigeon-sandbox.dev` como remitente (solo llega a tu email)
-4. Para producción: verificar un dominio propio en SendPigeon
-5. Agregar `SENDPIGEON_API_KEY` como secret en la Edge Function `send-confirmation`
+1. Crear un proyecto vacío en Supabase.
+2. Abrir el SQL Editor de Supabase.
+3. Copiar y ejecutar el contenido de `database/schema.sql`.
+4. Configurar Supabase Auth con email/password.
+5. Completar `.env.local` con `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
+6. Configurar los secrets de las Edge Functions.
+7. Desplegar las funciones `send-confirmation` y `confirm-appointment`.
 
-## Scripts disponibles
+💡 Nota para el evaluador: El script SQL para replicar la estructura de la base de datos en su propio proyecto de Supabase se encuentra en la carpeta `/database/schema.sql`.
+
+Las Edge Functions no corren dentro de Vite. Si se modifican archivos en `supabase/functions`, hay que desplegarlos en Supabase para que impacten en producción.
+
+## Scripts
 
 ```bash
-npm run dev       # Desarrollo con HMR
-npm run build     # Build de producción
-npm run lint      # ESLint
-npm test          # Tests unitarios
+npm run dev      # Ejecuta Vite en desarrollo
+npm run build    # Compila TypeScript y genera build de producción
+npm run lint     # Ejecuta ESLint
+npm run test     # Ejecuta tests con Vitest
 ```
 
-## Próximos pasos
+## Supabase Edge Functions
 
-- Panel admin para gestionar turnos (Completado / vencido)
-- Verificar dominios para enviar emails a cualquier destinatario
-- Deploy a producción (Vercel, Netlify, etc.)
+Funciones usadas:
+
+- `send-confirmation`: envía el email de confirmación cuando se crea una reserva.
+- `confirm-appointment`: confirma el turno usando el token recibido por email.
+
+Ambas funciones usan `SUPABASE_SERVICE_ROLE_KEY`, por lo que esa clave debe configurarse como secret en Supabase y nunca exponerse en el frontend.
+
+El código de las funciones está incluido en el repositorio:
+
+```txt
+supabase/functions/send-confirmation/index.ts
+supabase/functions/confirm-appointment/index.ts
+```
+
+Para desplegarlas en un proyecto propio de Supabase:
+
+1. Instalar o usar la CLI de Supabase con `npx`.
+2. Iniciar sesión.
+3. Configurar los secrets necesarios.
+4. Ejecutar el deploy de cada función.
+
+```bash
+npx supabase login
+
+npx supabase secrets set \
+  SENDPIGEON_API_KEY=tu-api-key \
+  FROM_EMAIL=tu-remitente \
+  APP_URL=http://localhost:5173 \
+  SUPABASE_URL=https://tu-proyecto.supabase.co \
+  SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key \
+  --project-ref TU_PROJECT_REF
+
+npx supabase functions deploy send-confirmation --project-ref TU_PROJECT_REF
+npx supabase functions deploy confirm-appointment --project-ref TU_PROJECT_REF
+```
+
+`TU_PROJECT_REF` es el identificador del proyecto de Supabase. Se puede ver en la URL del dashboard o en `Project Settings > General > Reference ID`.
+
+Importante: si se modifica una función dentro de `supabase/functions`, hay que desplegarla para que el cambio impacte en los emails o confirmaciones reales.
+
+## Notas de base de datos
+
+- `services` almacena las tarjetas de servicios mostradas en la home.
+- `appointments` almacena las reservas de usuarios.
+- `database/schema.sql` contiene las tablas, relaciones, políticas RLS y datos iniciales.
+
+## Verificación
+
+Antes de commitear cambios, correr:
+
+```bash
+npm run lint
+npm run build
+```
+
+## Herramientas de IA utilizadas
+
+- Gemini: configuración inicial del proyecto Supabase.
+- OpenCode: desarrollo y ajustes de frontend, integración con Supabase, Edge Functions, limpieza de datos y correcciones de lint/build.

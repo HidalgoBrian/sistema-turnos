@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@^2"
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,7 +22,7 @@ export default {
         return Response.json({ success: false, error: "Token es requerido" }, { status: 400, headers: corsHeaders })
       }
 
-      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
       const { data, error } = await supabase
         .from("appointments")
