@@ -95,7 +95,10 @@ export default function Auth() {
 
                 <button
                     type="button"
-                    onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
+                    onClick={() => supabase.auth.signInWithOAuth({
+                        provider: 'google',
+                        options: { redirectTo: window.location.origin },
+                    })}
                     className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                 >
                     <svg className="w-5 h-5" viewBox="0 0 24 24">
