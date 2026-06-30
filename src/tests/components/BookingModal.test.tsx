@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import BookingModal from '../../components/BookingModal'
 import { mockQuery } from '../test-utils'
@@ -66,8 +66,12 @@ describe('BookingModal', () => {
       <BookingModal isOpen={true} onClose={onClose} service={mockService} onBookingSuccess={onBookingSuccess} />
     )
     const slot = await screen.findByText('10:00')
-    fireEvent.click(slot)
-    expect(slot.className).toContain('bg-indigo-600')
+    await act(async () => {
+      fireEvent.click(slot)
+    })
+    await waitFor(() => {
+      expect(screen.getByText('10:00').className).toContain('bg-indigo-600')
+    })
   })
 
   it('deshabilita horarios ocupados', async () => {
