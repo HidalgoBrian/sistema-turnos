@@ -84,7 +84,7 @@ database/
 
 ## Variables de entorno
 
-Copiar el archivo `.env.example`, renombrarlo a `.env.local` y completar las variables con las claves propias de Supabase.
+Copiar el archivo `.env.example`, renombrarlo a `.env.local` y completar las variables públicas del frontend con las claves propias de Supabase.
 
 ```bash
 cp .env.example .env.local
@@ -97,15 +97,16 @@ VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 ```
 
-Secrets necesarios para Supabase Edge Functions:
+Estos valores no van en `.env.local`. Se configuran como custom secrets dentro de Supabase para que los usen las Edge Functions:
 
 ```env
 SENDPIGEON_API_KEY=
-FROM_EMAIL=
 APP_URL=
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
 ```
+
+`FROM_EMAIL` es opcional. Si no se configura, la función usa `onboarding@sendpigeon-sandbox.dev` como remitente por defecto.
+
+Supabase inyecta automáticamente variables como `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` dentro de las Edge Functions. No hace falta cargarlas manualmente como custom secrets.
 
 ## Instalación y ejecución local
 
@@ -200,11 +201,11 @@ npx supabase login
 
 npx supabase secrets set \
   SENDPIGEON_API_KEY=tu-api-key \
-  FROM_EMAIL=tu-remitente \
   APP_URL=http://localhost:5173 \
-  SUPABASE_URL=https://tu-proyecto.supabase.co \
-  SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key \
   --project-ref TU_PROJECT_REF
+
+# Opcional (si querés usar un remitente propio):
+npx supabase secrets set FROM_EMAIL=tu-remitente --project-ref TU_PROJECT_REF
 
 npx supabase functions deploy send-confirmation --project-ref TU_PROJECT_REF
 npx supabase functions deploy confirm-appointment --project-ref TU_PROJECT_REF

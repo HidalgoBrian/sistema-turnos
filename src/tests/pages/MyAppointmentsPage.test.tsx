@@ -173,4 +173,51 @@ describe('MyAppointmentsPage', () => {
       expectBadge('Cancelado').toBeInTheDocument()
     })
   })
+
+  it('abre el diálogo de cancelación al hacer clic en Cancelar', async () => {
+    const mockFrom = supabase.from as any
+    const futureDate = new Date(Date.now() + 86400000).toISOString()
+    const app = {
+      id: 'app-1',
+      appointment_date: futureDate,
+      created_at: new Date().toISOString(),
+      status: 'pending',
+      services: [{ name: 'Corte' }],
+    }
+    mockFrom.mockReturnValue(mockQuery([app]))
+
+    renderPage()
+
+    const cancelButton = await screen.findByText('Cancelar')
+    fireEvent.click(cancelButton)
+
+    await waitFor(() => {
+      expect(screen.getByText(/¿Cancelar el turno/i)).toBeInTheDocument()
+    })
+  })
+
+  it('confirma la cancelación y cierra el diálogo', async () => {
+    const mockFrom = supabase.from as any
+    const futureDate = new Date(Date.now() + 86400000).toISOString()
+    const app = {
+      id: 'app-1',
+      appointment_date: futureDate,
+      created_at: new Date().toISOString(),
+      status: 'pending',
+      services: [{ name: 'Corte' }],
+    }
+    mockFrom.mockReturnValue(mockQuery([app]))
+
+    renderPage()
+
+    const cancelButton = await screen.findByText('Cancelar')
+    fireEvent.click(cancelButton)
+
+    const confirmButton = await screen.findByText('Sí, cancelar turno')
+    fireEvent.click(confirmButton)
+
+    await waitFor(() => {
+      expectBadge('Cancelado').toBeInTheDocument()
+    })
+  })
 })
