@@ -156,7 +156,11 @@ Esta opción solo es necesaria si se quiere levantar una copia completa del back
 2. Abrir el SQL Editor de Supabase.
 3. Copiar y ejecutar el contenido de `database/schema.sql`.
 4. Configurar Supabase Auth con email/password.
-5. Completar `.env.local` con `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
+5. (Opcional) Habilitar inicio de sesión con Google:
+   - En Supabase Dashboard → Authentication → Providers → Google, activar el provider.
+   - Crear un OAuth Client ID en [Google Cloud Console](https://console.cloud.google.com) (tipo Web Application) y agregar `https://TU_PROJECT_REF.supabase.co/auth/v1/callback` como URI de redirección (reemplazar `TU_PROJECT_REF` por el Project Reference de Supabase).
+   - Copiar Client ID y Client Secret en los campos de Supabase.
+6. Completar `.env.local` con `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
 6. Configurar los secrets de las Edge Functions.
 7. Desplegar las funciones `send-confirmation` y `confirm-appointment`.
 
