@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { format, isPast, addMinutes } from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { Appointment } from '../types/Appointment'
+import { Filter } from '../types/FilterEnum'
 
 const getServiceName = (app: Appointment) => {
   if (Array.isArray(app.services)) return app.services[0]?.name || 'Servicio reservado'
@@ -26,14 +27,11 @@ function getEffectiveStatus(app: Appointment): { label: string; color: string } 
   }
 }
 
-const FILTERS = ['Todos', 'Pendiente', 'Confirmado', 'Completado', 'Cancelado'] as const
-type Filter = typeof FILTERS[number]
-
 export default function MyAppointmentsPage() {
   const navigate = useNavigate()
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<Filter>('Todos')
+  const [filter, setFilter] = useState<Filter>(Filter.Todos)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null)
 
@@ -106,7 +104,7 @@ export default function MyAppointmentsPage() {
   }
 
   const filteredAppointments =
-    filter === 'Todos'
+    filter === Filter.Todos
       ? appointments
       : appointments.filter((app) => getEffectiveStatus(app).label === filter)
 
@@ -129,7 +127,7 @@ export default function MyAppointmentsPage() {
       </div>
 
       <div className="flex gap-2 mb-6 flex-wrap">
-        {FILTERS.map((f) => (
+        {Object.values(Filter).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
