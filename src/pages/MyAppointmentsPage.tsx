@@ -4,14 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { format, isPast, addMinutes } from 'date-fns'
 import { es } from 'date-fns/locale'
-
-interface Appointment {
-  id: string
-  appointment_date: string
-  created_at: string
-  status: string
-  services: { name: string } | { name: string }[] | null
-}
+import type { Appointment } from '../types/Appointment'
 
 const getServiceName = (app: Appointment) => {
   if (Array.isArray(app.services)) return app.services[0]?.name || 'Servicio reservado'

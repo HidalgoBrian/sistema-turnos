@@ -1,14 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import BookingModal from '../components/BookingModal'
-
-interface Service {
-  id: string
-  name: string
-  description: string
-  duration_minutes: number
-  price: number
-}
+import type { Service } from '../types/Service'
 
 export default function HomePage() {
   const [services, setServices] = useState<Service[]>([])

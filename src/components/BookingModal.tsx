@@ -6,18 +6,8 @@ import { es } from 'date-fns/locale'
 import { DayPicker } from 'react-day-picker'
 import 'react-day-picker/dist/style.css'
 import { supabase } from '../lib/supabase'
-
-interface Service {
-  id: string
-  name: string
-  description: string
-  duration_minutes: number
-  price: number
-}
-
-interface AppointmentData {
-  appointment_date: string
-}
+import type { Service } from '../types/Service'
+import type { AppointmentData } from '../types/AppointmentData'
 
 interface BookingModalProps {
   isOpen: boolean
