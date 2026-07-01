@@ -4,9 +4,9 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { format, isPast, addMinutes } from 'date-fns'
 import { es } from 'date-fns/locale'
-import type { Appointment } from '../types/Appointment'
+import type { Appointment } from '../types/AppointmentType'
 import { Filter } from '../types/FilterEnum'
-import { AppointmentStatus } from '../types/AppointmentStatus'
+import { AppointmentStatus } from '../types/AppointmentStatusEnum'
 
 const getServiceName = (app: Appointment) => {
   if (Array.isArray(app.services)) return app.services[0]?.name || 'Servicio reservado'

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import BookingModal from '../components/BookingModal'
-import type { Service } from '../types/Service'
+import type { Service } from '../types/ServiceType'
 
 export default function HomePage() {
   const [services, setServices] = useState<Service[]>([])
