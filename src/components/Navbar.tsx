@@ -1,13 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
-import { supabase } from '../lib/supabase'
+import { logout } from '../services/AuthService'
 
 export default function Navbar() {
   const { session } = useAuth()
   const navigate = useNavigate()
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    await logout()
     navigate('/login')
   }
 
