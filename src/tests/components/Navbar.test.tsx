@@ -18,14 +18,16 @@ function renderNavbar() {
 describe('Navbar', () => {
   it('muestra el logo', async () => {
     renderNavbar()
-    expect(await screen.findByText('Sistema Turnos')).toBeInTheDocument()
+    expect(await screen.findByText('BarberiApp')).toBeInTheDocument()
   })
 
-  it('muestra Iniciar Sesión para usuarios no autenticados', async () => {
+  it('no muestra botones de navegación para usuarios no autenticados', async () => {
     ;(supabase.auth.getSession as any).mockResolvedValue({ data: { session: null }, error: null })
     renderNavbar()
     await waitFor(() => {
-      expect(screen.getByText('Iniciar Sesión')).toBeInTheDocument()
+      expect(screen.queryByText('Iniciar Sesión')).not.toBeInTheDocument()
+      expect(screen.queryByText('Mis Turnos')).not.toBeInTheDocument()
+      expect(screen.queryByText('Cerrar Sesión')).not.toBeInTheDocument()
     })
   })
 
