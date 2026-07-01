@@ -7,7 +7,7 @@ export function mockQuery<T>(data: T, error: any = null) {
     if (!promise) promise = error ? Promise.reject(error) : Promise.resolve({ data, error: null })
     return promise
   }
-  for (const method of ['select', 'eq', 'gte', 'lte', 'order', 'single', 'insert', 'update', 'in', 'maybeSingle']) {
+  for (const method of ['select', 'eq', 'neq', 'gte', 'lte', 'order', 'single', 'insert', 'update', 'in', 'maybeSingle']) {
     chain[method] = vi.fn(() => chain)
   }
   chain.then = (resolve: any, reject: any) => getPromise().then(resolve, reject)

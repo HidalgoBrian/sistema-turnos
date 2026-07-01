@@ -1,18 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import BookingModal from '../components/BookingModal'
-
-interface Service {
-  id: string
-  name: string
-  description: string
-  duration_minutes: number
-  price: number
-}
+import type { Service } from '../types/Service'
 
 export default function HomePage() {
-  const navigate = useNavigate()
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -52,44 +43,37 @@ export default function HomePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-12">
-        <div className="text-left">
-          <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
-            Reserva tu Turno
-          </h1>
-          <p className="text-lg text-gray-600">
-            Seleccioná el servicio que necesitás y agendá en segundos.
-          </p>
-        </div>
+    <div className="mx-auto max-w-6xl">
+      <section className="mb-14 overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-slate-900 px-6 py-12 text-center text-white shadow-xl sm:px-10 sm:py-16">
+        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.28em] text-indigo-100">
+          Barbería y cuidado personal
+        </p>
+        <h1 className="mb-4 text-4xl font-black tracking-tight sm:text-6xl">
+          Reserva tu Turno
+        </h1>
+        <p className="mx-auto max-w-2xl text-lg text-indigo-50 sm:text-xl">
+          Seleccioná el servicio que necesitás y agendá tu cita en cuestión de segundos.
+        </p>
+      </section>
 
-        <div className="flex gap-3">
-          <button
-            onClick={() => navigate('/mis-turnos')}
-            className="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-medium py-2 px-4 rounded-lg transition-colors"
-          >
-            Mis Turnos
-          </button>
-          <button
-            onClick={() => supabase.auth.signOut()}
-            className="bg-red-50 hover:bg-red-100 text-red-600 font-medium py-2 px-4 rounded-lg transition-colors"
-          >
-            Cerrar Sesión
-          </button>
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">Servicios disponibles</h2>
+          <p className="mt-1 text-slate-500">Elegí una opción para ver los horarios libres.</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {services.map((service) => (
           <div
             key={service.id}
-            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+            className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
           >
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">{service.name}</h2>
-            <p className="text-gray-600 mb-6 min-h-[3rem]">{service.description}</p>
+            <h3 className="mb-2 text-2xl font-bold text-slate-900">{service.name}</h3>
+            <p className="mb-6 min-h-[3rem] text-slate-600">{service.description}</p>
 
-            <div className="flex items-center justify-between border-t border-gray-100 pt-4 mb-6">
-              <span className="flex items-center text-gray-500">
+            <div className="mb-6 flex items-center justify-between border-t border-slate-100 pt-4">
+              <span className="flex items-center text-slate-500">
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -103,7 +87,7 @@ export default function HomePage() {
                 setSelectedService(service)
                 setIsModalOpen(true)
               }}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+              className="w-full rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-indigo-700"
             >
               Seleccionar
             </button>

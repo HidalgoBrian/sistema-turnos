@@ -1,23 +1,26 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, content-type, x-client-info, apikey',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Content-Type': 'application/json',
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
+      headers: corsHeaders,
     })
   }
 
   try {
-    const { appointmentId } = await req.json()
-    if (!appointmentId) {
-      return new Response(JSON.stringify({ error: 'appointmentId is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: corsHeaders,
       })
     }
 
@@ -26,45 +29,48 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
+    const { appointmentId } = await req.json()
+
     const { data: appointment, error } = await supabase
       .from('appointments')
-      .select('id, confirmation_token, user_id, appointment_date, service:service_id(name)')
+      .select('id, confirmation_token, user_id, appointment_date, service:services(name)')
       .eq('id', appointmentId)
       .single()
 
     if (error || !appointment) {
       return new Response(JSON.stringify({ error: 'Appointment not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: corsHeaders,
       })
     }
 
-    const { data: { user } } = await supabase.auth.admin.getUserById(appointment.user_id)
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user } } = await supabase.auth.getUser(token)
     const email = user?.email
     if (!email) {
       return new Response(JSON.stringify({ error: 'User email not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        status: 400,
+        headers: corsHeaders,
       })
     }
 
     const appUrl = Deno.env.get('APP_URL') || 'http://localhost:5173'
     const confirmUrl = `${appUrl}/confirmar?token=${appointment.confirmation_token}`
 
-    const brevoApiKey = Deno.env.get('BREVO_API_KEY')
-    const fromEmail = Deno.env.get('FROM_EMAIL') || 'noreply@tudominio.com'
+    const sendPigeonKey = Deno.env.get('SENDPIGEON_API_KEY')
+    const fromEmail = Deno.env.get('FROM_EMAIL') || 'onboarding@sendpigeon-sandbox.dev'
 
-    const { error: brevoError } = await fetch('https://api.brevo.com/v3/smtp/email', {
+    const sendRes = await fetch('https://api.sendpigeon.dev/v1/emails', {
       method: 'POST',
       headers: {
-        'api-key': brevoApiKey,
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${sendPigeonKey}`,
       },
       body: JSON.stringify({
-        sender: { name: 'Sistema de Turnos', email: fromEmail },
-        to: [{ email }],
+        from: fromEmail,
+        to: email,
         subject: 'Confirmá tu turno',
-        htmlContent: `
+        html: `
           <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
             <h2 style="color: #4f46e5;">¡Turno reservado!</h2>
             <p>Reservaste un turno de <strong>${appointment.service?.name || 'peluquería'}</strong>
@@ -78,23 +84,26 @@ serve(async (req) => {
           </div>
         `,
       }),
-    }).then((r) => r.json())
+    })
 
-    if (brevoError) {
-      return new Response(JSON.stringify({ error: 'Failed to send email', details: brevoError }), {
+    const sendResult = await sendRes.json()
+
+    if (!sendRes.ok) {
+      console.error('SendPigeon error:', sendResult)
+      return new Response(JSON.stringify({ error: 'Failed to send email', details: sendResult }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: corsHeaders,
       })
     }
 
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ success: true, id: sendResult.id }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: corsHeaders,
     })
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      headers: corsHeaders,
     })
   }
 })
