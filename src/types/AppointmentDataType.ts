@@ -1,3 +1,3 @@
-export interface AppointmentData {
+export type AppointmentData = {
   appointment_date: string
 }
