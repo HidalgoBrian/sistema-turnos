@@ -26,15 +26,18 @@ function ConfirmHandler({ token }: { token: string }) {
   useEffect(() => {
     supabase.functions.invoke('confirm-appointment', { body: { token } })
       .then(({ data, error }) => {
-        if (error || !data?.success) {
+        console.log('Confirm result:', { data, error })
+        const resData = typeof data === 'string' ? JSON.parse(data) : data
+        if (error || !resData?.success) {
           setStatus('error')
-          setMessage(data?.error || 'Error al confirmar el turno.')
+          setMessage(resData?.error || 'Error al confirmar el turno.')
         } else {
           setStatus('success')
           setMessage('¡Turno confirmado con éxito!')
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('Confirm catch error:', err)
         setStatus('error')
         setMessage('Error de conexión. Intentalo de nuevo.')
       })

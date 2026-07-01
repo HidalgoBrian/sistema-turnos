@@ -118,7 +118,9 @@ export default function BookingModal({ isOpen, onClose, service, onBookingSucces
 
       supabase.functions.invoke('send-confirmation', {
         body: { appointmentId: newAppointment.id }
-      }).catch(() => {})
+      }).catch((err) => {
+        console.error('Error sending confirmation email:', err)
+      })
 
       setIsSuccess(true)
       setTimeout(() => {

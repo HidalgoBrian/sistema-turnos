@@ -27,7 +27,6 @@ Aplicación web para reservar turnos de barbería. Los usuarios pueden registrar
 - Página para confirmar el turno desde el link del email.
 - Vista "Mis Turnos" con filtros por estado.
 - Cancelación de turnos pendientes o confirmados.
-- Limpieza automática visual de turnos pendientes vencidos.
 
 ## Servicios actuales
 
@@ -187,7 +186,7 @@ Funciones usadas:
 - `send-confirmation`: envía el email de confirmación cuando se crea una reserva.
 - `confirm-appointment`: confirma el turno usando el token recibido por email.
 
-Ambas funciones usan `SUPABASE_SERVICE_ROLE_KEY`, por lo que esa clave debe configurarse como secret en Supabase y nunca exponerse en el frontend.
+Ambas funciones usan `SUPABASE_SERVICE_ROLE_KEY`, la cual es inyectada automáticamente por Supabase dentro del entorno de ejecución de las Edge Functions y nunca debe exponerse en el frontend.
 
 El código de las funciones está incluido en el repositorio:
 
