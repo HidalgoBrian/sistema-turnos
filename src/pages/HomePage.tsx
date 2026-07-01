@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
 import BookingModal from '../components/BookingModal'
-import type { Service } from '../types/Service'
+import type { Service } from '../types/ServiceType'
+import { getServices } from '../services/CatalogService'
 
 export default function HomePage() {
   const [services, setServices] = useState<Service[]>([])
@@ -13,9 +13,8 @@ export default function HomePage() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const { data, error } = await supabase.from('services').select('*')
-        if (error) throw error
-        setServices(data || [])
+        const data = await getServices()
+        setServices(data)
       } catch (err) {
         if (err instanceof Error) setError(err.message)
         else setError('Ocurrió un error inesperado al cargar los servicios.')

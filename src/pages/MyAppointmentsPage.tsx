@@ -1,12 +1,13 @@
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
 import { format, isPast, addMinutes } from 'date-fns'
 import { es } from 'date-fns/locale'
-import type { Appointment } from '../types/Appointment'
+import type { Appointment } from '../types/AppointmentType'
 import { Filter } from '../types/FilterEnum'
-import { AppointmentStatus } from '../types/AppointmentStatus'
+import { AppointmentStatus } from '../types/AppointmentStatusEnum'
+import { getSession } from '../services/AuthService'
+import { getAppointments, cancelAppointment as cancelAppointmentService, cancelExpiredAppointments } from '../services/AppointmentService'
 
 const getServiceName = (app: Appointment) => {
   if (Array.isArray(app.services)) return app.services[0]?.name || 'Servicio reservado'
@@ -38,14 +39,13 @@ export default function MyAppointmentsPage() {
 
   const handleCancel = async (id: string) => {
     setCancellingId(id)
-    const { error } = await supabase
-      .from('appointments')
-      .update({ status: AppointmentStatus.Cancelled })
-      .eq('id', id)
-    if (!error) {
+    try {
+      await cancelAppointmentService(id)
       setAppointments((prev) =>
         prev.map((app) => (app.id === id ? { ...app, status: AppointmentStatus.Cancelled } : app))
       )
+    } catch (err) {
+      console.error('Error cancelling appointment:', err)
     }
     setCancellingId(null)
   }
@@ -53,16 +53,10 @@ export default function MyAppointmentsPage() {
   useEffect(() => {
     const fetchAndCleanAppointments = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        const session = await getSession()
         if (!session) return
 
-        const { data, error } = await supabase
-          .from('appointments')
-          .select('id, appointment_date, created_at, status, services(name)')
-          .eq('user_id', session.user.id)
-          .order('appointment_date', { ascending: true })
-
-        if (error) throw error
+        const data = await getAppointments(session.user.id)
 
         const expiryMinutes = 5
         const toCancel: string[] = []
@@ -80,10 +74,7 @@ export default function MyAppointmentsPage() {
         })
 
         if (toCancel.length > 0) {
-          await supabase
-            .from('appointments')
-            .update({ status: AppointmentStatus.Cancelled })
-            .in('id', toCancel)
+          await cancelExpiredAppointments(toCancel)
         }
 
         setAppointments(cleaned)

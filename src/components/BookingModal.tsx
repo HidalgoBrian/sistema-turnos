@@ -5,10 +5,9 @@ import { startOfDay, endOfDay, setHours, setMinutes, setSeconds, format } from '
 import { es } from 'date-fns/locale'
 import { DayPicker } from 'react-day-picker'
 import 'react-day-picker/dist/style.css'
-import { supabase } from '../lib/supabase'
-import type { Service } from '../types/Service'
-import type { AppointmentData } from '../types/AppointmentData'
-import { AppointmentStatus } from '../types/AppointmentStatus'
+import type { Service } from '../types/ServiceType'
+import { getSession } from '../services/AuthService'
+import { getBookedSlots, createAppointment, sendConfirmation } from '../services/AppointmentService'
 
 interface BookingModalProps {
   isOpen: boolean
@@ -51,24 +50,8 @@ export default function BookingModal({ isOpen, onClose, service, onBookingSucces
       try {
         const start = startOfDay(selectedDate).toISOString()
         const end = endOfDay(selectedDate).toISOString()
-
-        const { data, error: fetchError } = await supabase
-          .from('appointments')
-          .select('appointment_date')
-          .eq('service_id', service.id)
-          .gte('appointment_date', start)
-          .lte('appointment_date', end)
-          .neq('status', AppointmentStatus.Cancelled)
-
-        if (fetchError) throw fetchError
-
-        if (data) {
-          const slots = data.map((app: AppointmentData) => {
-            const d = new Date(app.appointment_date)
-            return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
-          })
-          setUnavailableSlots(slots)
-        }
+        const slots = await getBookedSlots(service.id, start, end)
+        setUnavailableSlots(slots)
       } catch (err) {
         console.error('Error fetching availability:', err)
       } finally {
@@ -91,27 +74,16 @@ export default function BookingModal({ isOpen, onClose, service, onBookingSucces
       const appointmentDate = setSeconds(setMinutes(setHours(startOfDay(selectedDate), hours), minutes), 0)
 
       // Get current user session
-      const { data: { session } } = await supabase.auth.getSession()
+      const session = await getSession()
       if (!session) throw new Error('No session found. Please log in again.')
 
-      const { data: newAppointment, error: bookingError } = await supabase
-        .from('appointments')
-        .insert({
-          user_id: session.user.id,
-          service_id: service.id,
-          appointment_date: appointmentDate.toISOString(),
-          status: AppointmentStatus.Pending
-        })
-        .select('id')
-        .single()
-
-      if (bookingError) throw bookingError
-
-      supabase.functions.invoke('send-confirmation', {
-        body: { appointmentId: newAppointment.id }
-      }).catch((err) => {
-        console.error('Error sending confirmation email:', err)
+      const newAppointment = await createAppointment({
+        user_id: session.user.id,
+        service_id: service.id,
+        appointment_date: appointmentDate.toISOString(),
       })
+
+      sendConfirmation(newAppointment.id)
 
       setIsSuccess(true)
       setTimeout(() => {

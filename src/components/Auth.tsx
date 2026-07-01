@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
 import { translateAuthError } from '../lib/auth-errors'
+import { login as authLogin, register as authRegister, loginWithGoogle } from '../services/AuthService'
 
 export default function Auth() {
     const [loading, setLoading] = useState(false)
@@ -16,13 +16,11 @@ export default function Auth() {
 
         try {
             if (isLogin) {
-                const { error } = await supabase.auth.signInWithPassword({ email, password })
-                if (error) throw error
+                await authLogin(email, password)
             } else {
-                const { error } = await supabase.auth.signUp({ email, password })
-                if (error) throw error
+                await authRegister(email, password)
                 setMessage({ text: '¡Registro exitoso! Ya podés iniciar sesión.', isError: false })
-                setIsLogin(true) // pasamos a la vista de login
+                setIsLogin(true) // switch to login view
             }
         } catch (err) {
             if (err instanceof Error) {
@@ -96,10 +94,7 @@ export default function Auth() {
 
                 <button
                     type="button"
-                    onClick={() => supabase.auth.signInWithOAuth({
-                        provider: 'google',
-                        options: { redirectTo: window.location.origin },
-                    })}
+                    onClick={loginWithGoogle}
                     className="w-full flex items-center justify-center gap-3 py-2.5 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                 >
                     <svg className="w-5 h-5" viewBox="0 0 24 24">

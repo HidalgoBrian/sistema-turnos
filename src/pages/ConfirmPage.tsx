@@ -1,19 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { CheckCircle, XCircle } from 'lucide-react'
-import { supabase } from '../lib/supabase'
 import NoTokenPage from './NoTokenPage'
+import { confirmAppointment } from '../services/AppointmentService'
 
 function ConfirmHandler({ token }: { token: string }) {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    supabase.functions.invoke('confirm-appointment', { body: { token } })
-      .then(({ data, error }) => {
-        console.log('Confirm result:', { data, error })
-        const resData = typeof data === 'string' ? JSON.parse(data) : data
-        if (error || !resData?.success) {
+    confirmAppointment(token)
+      .then((resData) => {
+        console.log('Confirm result:', resData)
+        if (!resData?.success) {
           setStatus('error')
           setMessage(resData?.error || 'Error al confirmar el turno.')
         } else {
