@@ -6,6 +6,7 @@ import { format, isPast, addMinutes } from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { Appointment } from '../types/Appointment'
 import { Filter } from '../types/FilterEnum'
+import { AppointmentStatus } from '../types/AppointmentStatus'
 
 const getServiceName = (app: Appointment) => {
   if (Array.isArray(app.services)) return app.services[0]?.name || 'Servicio reservado'
@@ -17,9 +18,9 @@ function getEffectiveStatus(app: Appointment): { label: string; color: string } 
   const alreadyPassed = isPast(date)
 
   switch (app.status) {
-    case 'cancelled':
+    case AppointmentStatus.Cancelled:
       return { label: 'Cancelado', color: 'bg-red-100 text-red-800' }
-    case 'confirmed':
+    case AppointmentStatus.Confirmed:
       if (alreadyPassed) return { label: 'Completado', color: 'bg-green-100 text-green-800' }
       return { label: 'Confirmado', color: 'bg-green-100 text-green-800' }
     default:
@@ -39,11 +40,11 @@ export default function MyAppointmentsPage() {
     setCancellingId(id)
     const { error } = await supabase
       .from('appointments')
-      .update({ status: 'cancelled' })
+      .update({ status: AppointmentStatus.Cancelled })
       .eq('id', id)
     if (!error) {
       setAppointments((prev) =>
-        prev.map((app) => (app.id === id ? { ...app, status: 'cancelled' } : app))
+        prev.map((app) => (app.id === id ? { ...app, status: AppointmentStatus.Cancelled } : app))
       )
     }
     setCancellingId(null)
@@ -68,12 +69,12 @@ export default function MyAppointmentsPage() {
 
         const cleaned = (data || []).map((app: Appointment) => {
           if (
-            app.status === 'pending' &&
+            app.status === AppointmentStatus.Pending &&
             app.created_at &&
             isPast(addMinutes(new Date(app.created_at), expiryMinutes))
           ) {
             toCancel.push(app.id)
-            return { ...app, status: 'cancelled' }
+            return { ...app, status: AppointmentStatus.Cancelled }
           }
           return app
         })
@@ -81,7 +82,7 @@ export default function MyAppointmentsPage() {
         if (toCancel.length > 0) {
           await supabase
             .from('appointments')
-            .update({ status: 'cancelled' })
+            .update({ status: AppointmentStatus.Cancelled })
             .in('id', toCancel)
         }
 
@@ -172,7 +173,7 @@ export default function MyAppointmentsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  {(app.status === 'pending' || app.status === 'confirmed') && !isPast(new Date(app.appointment_date)) && (
+                  {(app.status === AppointmentStatus.Pending || app.status === AppointmentStatus.Confirmed) && !isPast(new Date(app.appointment_date)) && (
                     <button
                       onClick={() => setCancelTarget(app)}
                       className="text-sm text-red-600 hover:text-red-700 font-medium"

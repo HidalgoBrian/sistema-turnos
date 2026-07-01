@@ -8,6 +8,7 @@ import 'react-day-picker/dist/style.css'
 import { supabase } from '../lib/supabase'
 import type { Service } from '../types/Service'
 import type { AppointmentData } from '../types/AppointmentData'
+import { AppointmentStatus } from '../types/AppointmentStatus'
 
 interface BookingModalProps {
   isOpen: boolean
@@ -57,7 +58,7 @@ export default function BookingModal({ isOpen, onClose, service, onBookingSucces
           .eq('service_id', service.id)
           .gte('appointment_date', start)
           .lte('appointment_date', end)
-          .neq('status', 'cancelled')
+          .neq('status', AppointmentStatus.Cancelled)
 
         if (fetchError) throw fetchError
 
@@ -99,7 +100,7 @@ export default function BookingModal({ isOpen, onClose, service, onBookingSucces
           user_id: session.user.id,
           service_id: service.id,
           appointment_date: appointmentDate.toISOString(),
-          status: 'pending'
+          status: AppointmentStatus.Pending
         })
         .select('id')
         .single()
