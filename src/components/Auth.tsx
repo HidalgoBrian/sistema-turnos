@@ -22,7 +22,7 @@ export default function Auth() {
                 const { error } = await supabase.auth.signUp({ email, password })
                 if (error) throw error
                 setMessage({ text: '¡Registro exitoso! Ya podés iniciar sesión.', isError: false })
-                setIsLogin(true) // pasamos a la vista de login
+                setIsLogin(true) // switch to login view
             }
         } catch (err) {
             if (err instanceof Error) {

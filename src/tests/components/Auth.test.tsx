@@ -6,10 +6,10 @@ describe('Componente Auth', () => {
     it('renderiza correctamente el formulario de inicio de sesión por defecto', () => {
         render(<Auth />)
 
-        // Verificamos que el título esté en pantalla
+        // Check the title is displayed
         expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Iniciar Sesión')
 
-        // Verificamos que los inputs existan
+        // Check inputs exist
         expect(screen.getByPlaceholderText('Tu correo electrónico')).toBeInTheDocument()
         expect(screen.getByPlaceholderText('Contraseña')).toBeInTheDocument()
     })
@@ -17,11 +17,11 @@ describe('Componente Auth', () => {
     it('cambia a la vista de registro al hacer clic en el botón inferior', () => {
         render(<Auth />)
 
-        // Buscamos el botón para cambiar de modo y hacemos clic
+        // Find the toggle button and click it
         const toggleButton = screen.getByText('¿No tenés cuenta? Registrate')
         fireEvent.click(toggleButton)
 
-        // Verificamos que el título principal haya cambiado
+        // Check the heading changed
         expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Crear Cuenta')
     })
 })
