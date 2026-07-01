@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { translateAuthError } from '../lib/auth-errors'
 
 export default function Auth() {
     const [loading, setLoading] = useState(false)
@@ -25,7 +26,7 @@ export default function Auth() {
             }
         } catch (err) {
             if (err instanceof Error) {
-                setMessage({ text: err.message, isError: true })
+                setMessage({ text: translateAuthError(err.message), isError: true })
             }
         } finally {
             setLoading(false)
@@ -41,7 +42,7 @@ export default function Auth() {
                     </h2>
                 </div>
 
-                <form className="mt-8 space-y-6" onSubmit={handleAuth}>
+                <form className="mt-8 space-y-6" onSubmit={handleAuth} noValidate>
                     <div className="rounded-md shadow-sm space-y-4">
                         <div>
                             <label className="sr-only">Email</label>
